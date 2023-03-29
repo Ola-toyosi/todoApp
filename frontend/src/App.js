@@ -1,4 +1,3 @@
-import logo from "./logo.svg";
 import React, { Component } from "react";
 import Modal from "./components/Modal";
 import axios from "axios";
@@ -8,8 +7,11 @@ class App extends Component {
     super(props);
     // define properties to be used
     this.state = {
+      // empty list to hold data fetched from API
+      todoList : [],
       // set to false to show items not marked as complete in UI
       viewCompleted: false,
+      modal: false,
       // todo item with it's features
       activeItem: {
         title: "",
@@ -18,59 +20,23 @@ class App extends Component {
         completed: false,
       },
       editing: false,
-      // empty list to hold data fetched from API
-      todoList: [],
     };
-    this.fetchTasks = this.fetchTasks.bind(this);
   }
 
-  // async to enable asynchronous operations
-  // componentDidMount to allow fetching data using await
-  async componentDidMount() {
-    // try/catch to hanlde errors
-    try {
-      // fetch data from api into response
-      const res = await fetch("http://localhost:8000/api/todos/");
-      // jsonify respone and assign to todoList
-      const todoList = await res.json();
-      // change previous state of the initial todoList
-      this.setState({
-        todoList: todoList,
-      });
-      console.log(todoList);
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
-  fetchTasks() {
-    console.log("Fetching...");
-
-    fetch("http://127.0.0.1:8000/api/todos/")
-      .then((response) => response.json())
-      .then((data) =>
-        this.setState({
-          todoList: data,
-        })
-      );
-  }
-
-  deleteTask = (item) => {
-    axios.delete(`http://localhost:8000/api/todos/${item.id}/`);
+  componentDidMount() {
     this.fetchTasks();
+  }
+
+  fetchTasks = () => {
+    axios
+      .get("http://localhost:8000/api/todos/")
+      .then((res) => this.setState({ todoList: res.data }))
+      .catch((err) => console.log(err));
   };
 
   // changes Modal state when triggered
   toggle = () => {
     this.setState({ modal: !this.state.modal });
-  };
-
-  editTask = (item) => {
-    this.setState({
-      activeItem: item,
-      editing: true,
-      modal: !this.state.modal,
-    });
   };
 
   //Responsible for saving the task
@@ -79,13 +45,28 @@ class App extends Component {
     this.toggle();
     //  if item already exists, update it
     if (item.id) {
-      axios.put(`http://localhost:8000/api/todos/${item.id}/`, item);
-      this.fetchTasks();
+      axios
+        .put(`http://localhost:8000/api/todos/${item.id}/`, item)
+        .then((res) => this.fetchTasks());
       return;
     }
     // else create new item
-    axios.post("http://localhost:8000/api/todos/", item);
-    this.fetchTasks();
+    axios
+      .post("http://localhost:8000/api/todos/", item)
+      .then((res) => this.fetchTasks());
+  };
+
+  deleteTask = (item) => {
+    axios.delete(`http://localhost:8000/api/todos/${item.id}/`).then((res) => this.fetchTasks());
+  };
+
+
+  editTask = (item) => {
+    this.setState({
+      activeItem: item,
+      editing: true,
+      modal: !this.state.modal,
+    });
   };
 
   // create item and toggle modal
@@ -110,7 +91,6 @@ class App extends Component {
         >
           Complete
         </button>
-        <t />
         <button
           onClick={() => this.displayCompleted(false)}
           className={this.state.viewCompleted ? "nav-link" : "nav-link active"}
